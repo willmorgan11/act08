@@ -88,4 +88,30 @@ class DatabaseHelper {
       }
     }
   }
+  // Add this method to your DatabaseHelper class for debugging
+  Future printDatabaseContents() async {
+    final db = await database;
+
+    print('=== FOLDERS ===');
+    final folders = await db.query('folders');
+    for (var folder in folders) {
+      print(folder);
+    }
+
+    print('\n=== CARDS ===');
+    final cards = await db.query('cards');
+    for (var card in cards) {
+      print(card);
+    }
+
+    print('\n=== CARD COUNT BY FOLDER ===');
+    final counts = await db.rawQuery(
+        'SELECT f.folder_name, COUNT(c.id) as card_count '
+            'FROM folders f LEFT JOIN cards c ON f.id = c.folder_id '
+            'GROUP BY f.id'
+    );
+    for (var count in counts) {
+      print(count);
+    }
+  }
 }
