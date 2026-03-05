@@ -9,11 +9,11 @@ class FoldersScreen extends StatefulWidget {
   _FoldersScreenState createState() => _FoldersScreenState();
 }
 
-class _FoldersScreenState extends State {
+class _FoldersScreenState extends State<FoldersScreen> {
   final FolderRepository _folderRepository = FolderRepository();
   final CardRepository _cardRepository = CardRepository();
-  List _folders = [];
-  Map _cardCounts = {};
+  List<Folder> _folders = [];
+  Map<int, int> _cardCounts = {};
   bool _isLoading = true;
 
   @override
@@ -22,11 +22,11 @@ class _FoldersScreenState extends State {
     _loadFolders();
   }
 
-  Future _loadFolders() async {
+  Future<void> _loadFolders() async {
     setState(() => _isLoading = true);
 
     final folders = await _folderRepository.getAllFolders();
-    final Map counts = {};
+    final Map<int, int> counts = {};
 
     for (var folder in folders) {
       counts[folder.id!] = await _cardRepository.getCardCountByFolder(folder.id!);
@@ -39,8 +39,8 @@ class _FoldersScreenState extends State {
     });
   }
 
-  Future _deleteFolder(Folder folder) async {
-    final confirmed = await showDialog(
+  Future<void> _deleteFolder(Folder folder) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete Folder?'),
@@ -78,70 +78,91 @@ class _FoldersScreenState extends State {
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // loading indicator
+          ? const Center(child: CircularProgressIndicator())
           : _folders.isEmpty
           ? const Center(child: Text('No folders yet. Add one.'))
-          : GridView.builder(
-              padding: EdgeInsets.all(16),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.2,
-              ),
-              itemCount: _folders.length,
-              itemBuilder: (context, index) {
-                final folder = _folders[index];
-                final cardCount = _cardCounts[folder.id!] ?? 0;
+          : ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _folders.length,
+        itemBuilder: (context, index) {
+          final folder = _folders[index];
+          final cardCount = _cardCounts[folder.id!] ?? 0;
 
-                return Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: InkWell(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CardsScreen(folder: folder),
-                        ),
-                      );
-                      _loadFolders(); // Refresh after returning
-                    },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _getSuitIcon(folder.folderName),
-                          size: 64,
-                          color: _getSuitColor(folder.folderName),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          folder.folderName,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  // navigates into folder
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CardsScreen(folder: folder),
                           ),
+                        );
+                        _loadFolders(); // loads selected folder
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getSuitIcon(folder.folderName),
+                              size: 56,
+                              color: _getSuitColor(folder.folderName),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    folder.folderName,
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$cardCount cards',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right, color: Colors.grey),
+                          ],
                         ),
-                        Text(
-                          '$cardCount cards',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteFolder(folder),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                );
-              },
+                  // delete button
+                  InkWell(
+                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                    onTap: () => _deleteFolder(folder),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                      child: Icon(Icons.delete, color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          );
+        },
+      ),
     );
   }
 
@@ -155,12 +176,9 @@ class _FoldersScreenState extends State {
 
   Color _getSuitColor(String suitName) {
     switch (suitName) {
-      case 'Hearts':
-        return Colors.red;
-      case 'Spades':
-        return Colors.black;
-      default:
-        return Colors.grey;
+      case 'Hearts': return Colors.red;
+      case 'Spades': return Colors.black;
+      default: return Colors.grey;
     }
   }
 }
