@@ -21,12 +21,14 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _createDB,
-    );
-  }
+        onOpen: (db) async {
+          // must be set on every connection
+          await db.execute('PRAGMA foreign_keys = ON');
+      },
+  );
+}
 
   Future<void> _createDB(Database db, int version) async {
-    // enable foreign keys
-    await db.execute('PRAGMA foreign_keys = ON');
 
     // Create Folders table
     await db.execute('''
@@ -88,6 +90,7 @@ class DatabaseHelper {
       }
     }
   }
+
   // Add this method to your DatabaseHelper class for debugging
   Future printDatabaseContents() async {
     final db = await database;
